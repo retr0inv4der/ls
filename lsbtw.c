@@ -4,16 +4,23 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <stdbool.h>
 #include <errno.h>
 
 
-struct file_info {
+typedef struct  {
 	char* name ;
-	size_t size ;
-};
+	off_t size ;  //size in bytes
+	mode_t mode; // file type and mode
+	nlink_t links ; // number of hard links
+	ino_t inode ; //the inode number
+
+
+
+} file_info ;
 
 
 struct flags {
@@ -64,7 +71,7 @@ bool should_show(char* name){
 	return 1 ;
 }
 
-void get_file_into(char* path, struct file_info* fi){
+void get_file_into(char* path,  file_info* fi){
 	char full_path[1024] ;
 	snprintf(full_path, sizeof(full_path), "%s/%s", path , fi->name);
 
@@ -73,15 +80,34 @@ void get_file_into(char* path, struct file_info* fi){
 		perror(full_path) ;
 			return;
 		}
+	//extract from the st to the file_info struct
+
 	fi->size = st.st_size ;
+	fi->inode  = st.st_ino ;
+	fi->links = st.st_nlink ;
+	fi->mode = st.st_mode ;
+}
+
+void mode_string(file_info* fi ,char* str ){
+	if	 	(S_ISREG(fi->mode)) str[0] = 'r';
+	else if (S_ISBLK(fi->mode)) str[0] = 'b';
+	else if (S_ISSOCK(fi->mode))str[0] = 's';
+	else if (S_ISLNK(fi->mode)) str[0] = 'l';
+	else if (S_ISDIR(fi->mode)) str[0] = 'd';
+	else if (S_ISFIFO(fi->mode))str[0] = 'f';
+	else if (S_ISCHR(fi->mode)) str[0] = 'c';
+	str[1] = '\0';
+
 }
 
 void print_entry(char * path , char* name ){
-	struct file_info fi ;
+	char mode_str[30];
+	file_info fi ;
 	fi.name = name;
 	if(flags.long_detail){
 		get_file_into(path, &fi) ;
-		printf("%lu %s\n" , (unsigned long)fi.size , fi.name  ) ;
+		mode_string(&fi , mode_str) ;
+		printf("%s:%s\n"  ,mode_str, fi.name  ) ;
 
 
 	}else{
@@ -97,8 +123,6 @@ void walk_directory(char* path , void (*callback)( char* , char* )){
 		perror("opendir") ;
 		return;
 	}
-
-
 	struct dirent* entry ;
 	while ((entry = readdir(directory)) != NULL) {
 
