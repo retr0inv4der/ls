@@ -96,12 +96,26 @@ void mode_string(file_info* fi ,char* str ){
 	else if (S_ISDIR(fi->mode)) str[0] = 'd';
 	else if (S_ISFIFO(fi->mode))str[0] = 'f';
 	else if (S_ISCHR(fi->mode)) str[0] = 'c';
-	str[1] = '\0';
+
+	//set the perms
+	for(int i =1 ; i<= 9 ; i++)str[i] ='-' ;
+	if(fi->mode & S_IRUSR) str[1]='r' ;
+	if(fi->mode & S_IWUSR) str[2]='w' ;
+	if(fi->mode & S_IXUSR) str[3]='x' ;
+
+	if(fi->mode & S_IRGRP) str[4]='r';
+	if(fi->mode & S_IWGRP) str[5]='w';
+	if(fi->mode & S_IXGRP) str[6] = 'x' ;
+
+	if(fi->mode & S_IROTH) str[7]='r';
+	if(fi->mode & S_IWOTH) str[8] = 'w' ;
+	if(fi->mode & S_IXOTH) str[9] = 'x' ;
+	str[10]='\0';
 
 }
 
 void print_entry(char * path , char* name ){
-	char mode_str[30];
+	char mode_str[11];
 	file_info fi ;
 	fi.name = name;
 	if(flags.long_detail){
