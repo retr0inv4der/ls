@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 #include <errno.h>
-
+#include <pwd.h>
 
 typedef struct  {
 	char* name ;
@@ -17,6 +17,8 @@ typedef struct  {
 	mode_t mode; // file type and mode
 	nlink_t links ; // number of hard links
 	ino_t inode ; //the inode number
+	uid_t uid ;
+	char* username ;
 
 
 
@@ -86,17 +88,27 @@ void get_file_into(char* path,  file_info* fi){
 	fi->inode  = st.st_ino ;
 	fi->links = st.st_nlink ;
 	fi->mode = st.st_mode ;
+	fi->uid = st.st_uid ;
+
+
+	//extract the username
+	struct passwd* pw = getpwuid(fi->uid) ;
+	if(pw == NULL){
+		printf("something went wrong extracting the uid.") ;
+		exit(1);
+	}
+	fi->username = pw->pw_name ;
+
 }
 
-void mode_string(file_info* fi ,char* str ){
-	if	 	(S_ISREG(fi->mode)) str[0] = 'r';
-	else if (S_ISBLK(fi->mode)) str[0] = 'b';
+void perm_string(file_info* fi ,char* str ){
+	if (S_ISBLK(fi->mode)) str[0] = 'b';
 	else if (S_ISSOCK(fi->mode))str[0] = 's';
 	else if (S_ISLNK(fi->mode)) str[0] = 'l';
 	else if (S_ISDIR(fi->mode)) str[0] = 'd';
 	else if (S_ISFIFO(fi->mode))str[0] = 'f';
 	else if (S_ISCHR(fi->mode)) str[0] = 'c';
-
+	else						str[0] = '-';
 	//set the perms
 	for(int i =1 ; i<= 9 ; i++)str[i] ='-' ;
 	if(fi->mode & S_IRUSR) str[1]='r' ;
@@ -114,14 +126,17 @@ void mode_string(file_info* fi ,char* str ){
 
 }
 
+
+
+
 void print_entry(char * path , char* name ){
 	char mode_str[11];
 	file_info fi ;
 	fi.name = name;
 	if(flags.long_detail){
 		get_file_into(path, &fi) ;
-		mode_string(&fi , mode_str) ;
-		printf("%s:%s\n"  ,mode_str, fi.name  ) ;
+		perm_string(&fi , mode_str) ;
+		printf("%s %s %s\n"  ,mode_str,fi.username , fi.name  ) ;
 
 
 	}else{
