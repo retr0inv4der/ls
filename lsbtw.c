@@ -10,18 +10,17 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <pwd.h>
+#include <grp.h>
+
 
 typedef struct  {
-	char* name ;
+	char* name ; //the name of the file
 	off_t size ;  //size in bytes
 	mode_t mode; // file type and mode
 	nlink_t links ; // number of hard links
 	ino_t inode ; //the inode number
-	uid_t uid ;
-	char* username ;
-
-
-
+	char* username ; // the name of the owner
+	char* gidname ;
 } file_info ;
 
 
@@ -88,16 +87,26 @@ void get_file_into(char* path,  file_info* fi){
 	fi->inode  = st.st_ino ;
 	fi->links = st.st_nlink ;
 	fi->mode = st.st_mode ;
-	fi->uid = st.st_uid ;
+
+
 
 
 	//extract the username
-	struct passwd* pw = getpwuid(fi->uid) ;
+	struct passwd* pw = getpwuid(st.st_uid) ;
 	if(pw == NULL){
-		printf("something went wrong extracting the uid.") ;
-		exit(1);
+		strcpy(fi->username, "?\0") ;
 	}
 	fi->username = pw->pw_name ;
+
+	//extract the gid name
+	struct group* gr  = getgrgid(st.st_gid) ;
+	if(gr == NULL ){
+		strcpy(fi->gidname , "?\0") ;
+
+	}
+	fi->gidname = gr->gr_name ;
+
+
 
 }
 
@@ -136,7 +145,7 @@ void print_entry(char * path , char* name ){
 	if(flags.long_detail){
 		get_file_into(path, &fi) ;
 		perm_string(&fi , mode_str) ;
-		printf("%s %s %s\n"  ,mode_str,fi.username , fi.name  ) ;
+		printf("%s %lu %s %s    %s\n"   ,mode_str , fi.links ,fi.username , fi.gidname , fi.name  ) ;
 
 
 	}else{
