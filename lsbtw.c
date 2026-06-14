@@ -159,7 +159,7 @@ void print_entry(char * path , char* name ){
 		get_file_into(path, &fi) ;
 		perm_string(&fi , mode_str) ;
 		get_time_string(time , 100 , fi.mtime) ;
-		printf("%s %lu %s %s %s   %s\n"   ,mode_str , fi.links ,fi.username , fi.gidname ,time, fi.name  ) ;
+		printf("%s %lu %s %s %ld %s   %s\n"   ,mode_str , fi.links ,fi.username , fi.gidname ,fi.size ,time, fi.name  ) ;
 
 
 	}else{
