@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
-
+#include <time.h>
 
 typedef struct  {
 	char* name ; //the name of the file
@@ -21,6 +21,7 @@ typedef struct  {
 	ino_t inode ; //the inode number
 	char* username ; // the name of the owner
 	char* gidname ;
+	time_t mtime;
 } file_info ;
 
 
@@ -87,6 +88,7 @@ void get_file_into(char* path,  file_info* fi){
 	fi->inode  = st.st_ino ;
 	fi->links = st.st_nlink ;
 	fi->mode = st.st_mode ;
+	fi->mtime = st.st_mtime ;
 
 
 
@@ -109,6 +111,16 @@ void get_file_into(char* path,  file_info* fi){
 
 
 }
+
+
+void get_time_string(char* buf  , size_t buf_len, time_t mtime ){
+	struct tm* time_info  = localtime(&mtime) ;
+	strftime(buf, buf_len, "%b %e %H:%M", time_info);
+}
+
+
+
+
 
 void perm_string(file_info* fi ,char* str ){
 	if (S_ISBLK(fi->mode)) str[0] = 'b';
@@ -142,10 +154,12 @@ void print_entry(char * path , char* name ){
 	char mode_str[11];
 	file_info fi ;
 	fi.name = name;
+	char time[100] ;
 	if(flags.long_detail){
 		get_file_into(path, &fi) ;
 		perm_string(&fi , mode_str) ;
-		printf("%s %lu %s %s    %s\n"   ,mode_str , fi.links ,fi.username , fi.gidname , fi.name  ) ;
+		get_time_string(time , 100 , fi.mtime) ;
+		printf("%s %lu %s %s %s   %s\n"   ,mode_str , fi.links ,fi.username , fi.gidname ,time, fi.name  ) ;
 
 
 	}else{
